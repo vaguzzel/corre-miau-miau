@@ -1,5 +1,6 @@
 import * as Phaser from "phaser";
 import { Ayuda } from "./escenas/Ayuda";
+import { Carga } from "./escenas/Carga";
 import { Final } from "./escenas/Final";
 import { Inicio } from "./escenas/Inicio";
 import { Juego } from "./escenas/Juego";
@@ -16,5 +17,5 @@ new Phaser.Game({
     width: 1280,
     height: 720,
   },
-  scene: [Inicio, Juego, Ayuda, Violeta, Final],
+  scene: [Carga, Inicio, Juego, Ayuda, Violeta, Final],
 });

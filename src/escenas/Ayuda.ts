@@ -36,10 +36,10 @@ export class Ayuda extends Phaser.Scene {
       .setVisible(false);
     let quitarAviso: Phaser.Time.TimerEvent | null = null;
 
-    const cartel = (texto: string) =>
-      this.add.text(width / 2, height / 2, texto, { ...estilo, fontSize: "34px", align: "center", padding: { x: 28, y: 18 } }).setOrigin(0.5).setVisible(false);
+    const cartel = (texto: string, y = height / 2) =>
+      this.add.text(width / 2, y, texto, { ...estilo, fontSize: "34px", align: "center", padding: { x: 28, y: 18 } }).setOrigin(0.5).setVisible(false);
     const pausa = cartel(t("pausa"));
-    const listo = cartel(t("listo"));
+    const listo = cartel(t("listo"), height * 0.28);
     const final = cartel("");
 
     // Botones grandes para jugar con el dedo (también sirven con el mouse)

@@ -112,7 +112,7 @@ export class Final extends Phaser.Scene {
       [7200, () => {
         caminar.paused = true;
         sonido.efecto("ganar");
-        this.tweens.add({ targets: raton, angle: 12, y: suelo - 8, duration: 500, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+        this.tweens.add({ targets: raton, y: suelo - 10, duration: 450, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
         this.tweens.add({ targets: violeta, angle: -10, duration: 500, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
         this.time.addEvent({
           delay: 180,
@@ -140,10 +140,12 @@ export class Final extends Phaser.Scene {
     const total = (this.registry.get("puntajeTotal") as number | undefined) ?? 0;
     registrarPuntaje("total", total);
     const e = { fontFamily: "Trebuchet MS, sans-serif", color: "#4a3627", align: "center" };
+    const panel = this.add.rectangle(width / 2, 150, 860, 250, 0xfffbf2, 0.94).setStrokeStyle(4, 0xb48ce0).setAlpha(0);
+    this.tweens.add({ targets: panel, alpha: 1, duration: 500 });
     const titulo = this.add.text(width / 2, 70, t("fin"), { ...e, fontSize: "56px", fontStyle: "bold", color: "#6b3fa0" }).setOrigin(0.5).setAlpha(0);
     const puntos = this.add.text(width / 2, 130, t("finTotal", { p: total }), { ...e, fontSize: "28px" }).setOrigin(0.5).setAlpha(0);
     const creditos = this.add
-      .text(width / 2, 185, t("finCreditos"), { ...e, fontSize: "18px", backgroundColor: "#fffbf2cc", padding: { x: 12, y: 8 } })
+      .text(width / 2, 185, t("finCreditos"), { ...e, fontSize: "18px" })
       .setOrigin(0.5)
       .setAlpha(0);
     const volver = this.add.text(width / 2, 245, t("finVolver"), { ...e, fontSize: "20px" }).setOrigin(0.5).setAlpha(0);

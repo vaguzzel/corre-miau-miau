@@ -326,7 +326,14 @@ Todos los sonidos se **generan con la Web Audio API**: cada efecto es una secuen
 - **Vida extra** cada 10.000 puntos.
 - **Celular:** deslizar el dedo mueve a Quesito, y hay botones grandes para pausa, mapa, sonido y menú.
 
-## 18. Pruebas automáticas
+## 18. Publicación: web, app instalable y escritorio
+
+- **GitHub Pages** ([`.github/workflows/pages.yml`](../.github/workflows/pages.yml)): cada vez que se sube código a `main`, GitHub Actions instala las dependencias, **corre las pruebas** y, solo si pasan, construye el juego y lo publica en https://vaguzzel.github.io/corre-miau-miau/.
+- **App instalable (PWA)**: `vite-plugin-pwa` genera un *manifest* (nombre, íconos, colores, pantalla completa horizontal) y un *service worker* que guarda el juego en caché. Así el navegador ofrece "Instalar" y el juego funciona sin internet.
+- **Íconos en pixel art**: `npm run iconos` dibuja a Quesito con un trocito de queso y lo exporta en todos los tamaños (favicon, 192, 512 y una versión *maskable* con margen para que Android la recorte en círculo).
+- **Probar un nivel directo**: agregando `?nivel=begona` (o `tomasito`, `eren`, `violeta`, `final`) a la dirección se salta el menú. La escena `Carga` lee ese parámetro.
+
+## 19. Pruebas automáticas
 
 `npm test` corre las pruebas con Vitest. Revisan, entre otras cosas:
 

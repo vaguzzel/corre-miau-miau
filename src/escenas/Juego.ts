@@ -646,6 +646,8 @@ export class Juego extends Phaser.Scene {
     const altoTotal = this.grilla.alto * T + ALTO_PARED;
     if (this.mapaCompleto) {
       cam.stopFollow();
+      // Sin límites, para poder centrar el mapa aunque la pantalla sea más ancha que él.
+      cam.removeBounds();
       const zoom = Math.min(this.scale.width / anchoMundo, this.scale.height / altoTotal);
       cam.zoomTo(zoom, 300, "Sine.easeInOut");
       cam.pan(anchoMundo / 2, altoTotal / 2 - ALTO_PARED, 300, "Sine.easeInOut");
@@ -653,7 +655,10 @@ export class Juego extends Phaser.Scene {
     } else {
       cam.zoomTo(G.zoomCamara, 300, "Sine.easeInOut");
       cam.pan(this.spriteRaton.x, this.spriteRaton.y, 300, "Sine.easeInOut", false, (_c: Phaser.Cameras.Scene2D.Camera, avance: number) => {
-        if (avance === 1 && !this.mapaCompleto) cam.startFollow(this.spriteRaton, true, 0.12, 0.12, 0, 10);
+        if (avance === 1 && !this.mapaCompleto) {
+          cam.setBounds(0, -ALTO_PARED, anchoMundo, this.grilla.alto * T + ALTO_PARED);
+          cam.startFollow(this.spriteRaton, true, 0.12, 0.12, 0, 10);
+        }
       });
       this.mini.setVisible(true);
     }

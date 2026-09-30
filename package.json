@@ -9,7 +9,8 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "arte": "tsx tools/exportar-arte.ts"
+    "arte": "tsx tools/exportar-arte.ts",
+    "iconos": "tsx tools/exportar-iconos.ts"
   },
   "license": "MIT",
   "dependencies": {
@@ -19,6 +20,7 @@
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vite": "^8.3.1",
+    "vite-plugin-pwa": "^1.3.0",
     "vitest": "^5.0.2"
   }
 }
