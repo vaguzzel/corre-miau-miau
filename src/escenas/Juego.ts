@@ -1,11 +1,13 @@
 import * as Phaser from "phaser";
 import niveles from "../config/niveles.json";
+import { elegirAzar } from "../ia/azar";
 import { MAPA_CASA } from "../mapa/mapas";
 import { Despensa } from "../sistemas/Despensa";
 import { Grilla, type Dir, type TipoObjeto } from "../sistemas/grilla";
 import { MovedorGrilla } from "../sistemas/MovedorGrilla";
 
 const T = niveles.general.tamCasilla;
+const NIVEL = niveles.tomasito;
 const COLOR = {
   piso: 0xd8a977,
   pisoAlt: 0xd1a06b,
@@ -35,17 +37,26 @@ const TECLAS: Record<string, Dir> = {
   KeyD: "derecha",
 };
 
-// Prototipo con formas simples: laberinto, Quesito, queso y puntaje. El arte llega en la fase 4.
+/** listo: cuenta regresiva · jugando · atrapado: animación tras perder una vida · fin: ganó o perdió */
+type Fase = "listo" | "jugando" | "atrapado" | "fin";
+
+// Prototipo con formas simples: laberinto, Quesito, Tomasito, queso, vidas y puntaje. El arte llega en la fase 4.
 export class Juego extends Phaser.Scene {
   private grilla!: Grilla;
   private quesito!: MovedorGrilla;
+  private gato!: MovedorGrilla;
   private despensa!: Despensa;
-  private sprite!: Phaser.GameObjects.Container;
+  private spriteRaton!: Phaser.GameObjects.Container;
+  private spriteGato!: Phaser.GameObjects.Container;
+  private caraGato!: Phaser.GameObjects.Image;
   private mini!: Phaser.Cameras.Scene2D.Camera;
-  private dibujosObjetos = new Map<string, Phaser.GameObjects.GameObject>();
+  private dibujosObjetos = new Map<string, Phaser.GameObjects.Graphics>();
+  private fase: Fase = "listo";
+  private vidas = 0;
   private mapaCompleto = false;
   private pausado = false;
-  private terminado = false;
+  private siestaRestante = 0;
+  private proximaSiesta = 0;
 
   constructor() {
     super("Juego");
@@ -55,7 +66,7 @@ export class Juego extends Phaser.Scene {
     // `create` también corre al reiniciar la escena, así que el estado se limpia aquí.
     this.mapaCompleto = false;
     this.pausado = false;
-    this.terminado = false;
+    this.vidas = niveles.general.vidas;
     this.dibujosObjetos.clear();
 
     this.grilla = new Grilla(MAPA_CASA);
@@ -66,20 +77,18 @@ export class Juego extends Phaser.Scene {
     this.dibujarLaberinto();
     this.dibujarObjetos();
 
-    const { x, y } = this.grilla.inicioRaton;
-    this.quesito = new MovedorGrilla(this.grilla, x, y);
-    this.quesito.alLlegar = (cx, cy) => this.comer(cx, cy);
-    this.sprite = this.add.container(0, 0, [
+    this.spriteRaton = this.add.container(0, 0, [
       this.add.circle(0, 0, 9, COLOR.borde),
       this.add.circle(0, 0, 7, COLOR.quesito),
       this.add.circle(3, -2, 1.5, 0x2a2330),
     ]);
-    this.actualizarSprite();
+    this.caraGato = this.add.image(0, -6, "tomasito");
+    this.caraGato.setScale(36 / Math.max(this.caraGato.width, this.caraGato.height));
+    this.spriteGato = this.add.container(0, 0, [this.add.ellipse(0, 8, 22, 7, 0x2b170a, 0.3), this.caraGato]);
 
     const cam = this.cameras.main;
     cam.setBounds(0, 0, anchoMundo, altoMundo);
     cam.setZoom(niveles.general.zoomCamara);
-    cam.startFollow(this.sprite, true, 0.12, 0.12);
     cam.setRoundPixels(true);
 
     // Mini-mapa: una segunda cámara que ve todo el laberinto en chico.
@@ -91,32 +100,145 @@ export class Juego extends Phaser.Scene {
       .setBackgroundColor(COLOR.gatera);
     this.mini.centerOn(anchoMundo / 2, altoMundo / 2);
 
-    this.input.keyboard!.on("keydown", (e: KeyboardEvent) => {
-      if (this.terminado) {
-        if (e.code === "Space") this.scene.restart();
-        return;
-      }
-      const dir = TECLAS[e.code];
-      if (dir && !this.pausado) this.quesito.pedir(dir);
-      if (e.code === "KeyM") this.alternarMapa();
-      if (e.code === "Space") this.alternarPausa();
-    });
+    this.input.keyboard!.on("keydown", (e: KeyboardEvent) => this.alApretar(e));
 
     this.scene.launch("Ayuda");
-    // La casilla de partida también tiene queso.
-    this.time.delayedCall(0, () => this.comer(x, y));
+    this.time.delayedCall(0, () => this.nuevaVida());
   }
 
   update(_t: number, dtMs: number): void {
-    if (this.pausado || this.terminado) return;
-    this.quesito.actualizar(dtMs / 1000, niveles.general.velocidadRaton);
-    this.actualizarSprite();
+    if (this.pausado || this.fase !== "jugando") return;
+    const dt = dtMs / 1000;
+    const g = niveles.general;
+
+    this.quesito.actualizar(dt, g.velocidadRaton);
+    if (this.fase !== "jugando") return; // pudo ganar justo en este paso
+
+    if (NIVEL.siesta) this.actualizarSiesta(dt);
+    if (this.siestaRestante <= 0) {
+      const enGatera = this.grilla.gateras.some((c) => c.x === this.gato.x && c.y === this.gato.y);
+      this.gato.actualizar(dt, g.velocidadRaton * NIVEL.velocidadGato * (enGatera ? g.velocidadGateraGato : 1));
+    }
+
+    this.actualizarSprites();
+    if (this.seTocan()) this.atrapado();
   }
 
-  private actualizarSprite(): void {
+  // ---------- ciclo de vida ----------
+
+  /** Pone a los dos personajes en su casilla de inicio y hace la cuenta regresiva. */
+  private nuevaVida(): void {
+    const r = this.grilla.inicioRaton;
+    const gi = this.grilla.inicioGato;
+    this.quesito = new MovedorGrilla(this.grilla, r.x, r.y);
+    this.quesito.alLlegar = (x, y) => this.comer(x, y);
+    this.gato = new MovedorGrilla(this.grilla, gi.x, gi.y);
+    this.gato.alLlegar = (x, y) => this.gato.pedir(this.decidirGato(x, y));
+    this.gato.pedir(this.decidirGato(gi.x, gi.y));
+    this.siestaRestante = 0;
+    this.proximaSiesta = this.sortearSiesta();
+
+    this.spriteGato.setScale(1).setAlpha(1);
+    this.spriteRaton.setScale(1).setAlpha(1);
+    this.actualizarSprites();
+    this.comer(r.x, r.y);
+
+    const cam = this.cameras.main;
+    if (!this.mapaCompleto) cam.startFollow(this.spriteRaton, true, 0.12, 0.12);
+
+    this.fase = "listo";
+    this.events.emit("vidas", this.vidas);
+    this.events.emit("listo", true);
+    this.time.delayedCall(niveles.general.esperaInicioSeg * 1000, () => {
+      this.events.emit("listo", false);
+      if (this.fase === "listo") this.fase = "jugando";
+    });
+  }
+
+  private atrapado(): void {
+    this.fase = "atrapado";
+    this.vidas--;
+    this.events.emit("vidas", this.vidas);
+    // Tomasito celebra y Quesito desaparece.
+    this.tweens.add({ targets: this.spriteGato, scale: 1.35, duration: 180, yoyo: true, repeat: 2 });
+    this.tweens.add({ targets: this.spriteRaton, scale: 0.2, alpha: 0, duration: 400 });
+    this.time.delayedCall(1600, () => {
+      if (this.vidas > 0) this.nuevaVida();
+      else this.terminar(false);
+    });
+  }
+
+  private terminar(gano: boolean): void {
+    this.fase = "fin";
+    this.events.emit(gano ? "ganaste" : "perdiste", this.despensa.puntaje);
+  }
+
+  private alApretar(e: KeyboardEvent): void {
+    if (this.fase === "fin") {
+      if (e.code === "Space") this.scene.restart();
+      return;
+    }
+    const dir = TECLAS[e.code];
+    if (dir && !this.pausado && this.fase !== "atrapado") this.quesito.pedir(dir);
+    if (e.code === "KeyM") this.alternarMapa();
+    if (e.code === "Space") this.alternarPausa();
+  }
+
+  // ---------- gato ----------
+
+  private decidirGato(x: number, y: number): Dir {
+    return elegirAzar(this.grilla, { x, y }, this.gato.dir, { x: this.quesito.x, y: this.quesito.y }, NIVEL.probPerseguir);
+  }
+
+  private sortearSiesta(): number {
+    const [min, max] = NIVEL.siestaCadaSeg;
+    return min + Math.random() * (max - min);
+  }
+
+  /** Tomasito, cada tanto, se detiene a dormir una siesta corta. */
+  private actualizarSiesta(dt: number): void {
+    if (this.siestaRestante > 0) {
+      this.siestaRestante -= dt;
+      if (this.siestaRestante <= 0) {
+        this.proximaSiesta = this.sortearSiesta();
+        this.events.emit("siesta", false);
+      }
+      return;
+    }
+    this.proximaSiesta -= dt;
+    if (this.proximaSiesta <= 0) {
+      this.siestaRestante = NIVEL.siestaSeg;
+      this.events.emit("siesta", true);
+    }
+  }
+
+  /** ¿Están lo bastante cerca como para que el gato atrape a Quesito? */
+  private seTocan(): boolean {
+    const a = this.quesito.posicion();
+    const b = this.gato.posicion();
+    let dx = Math.abs(a.x - b.x);
+    dx = Math.min(dx, this.grilla.ancho - dx);
+    return Math.hypot(dx, a.y - b.y) < niveles.general.radioAtrapar;
+  }
+
+  // ---------- dibujo ----------
+
+  private actualizarSprites(): void {
     const p = this.quesito.posicion();
-    this.sprite.setPosition((p.x + 0.5) * T, (p.y + 0.5) * T);
-    this.sprite.setScale(this.quesito.dir === "izquierda" ? -1 : 1, 1);
+    this.spriteRaton.setPosition((p.x + 0.5) * T, (p.y + 0.5) * T);
+    this.spriteRaton.scaleX = this.quesito.dir === "izquierda" ? -Math.abs(this.spriteRaton.scaleX) : Math.abs(this.spriteRaton.scaleX);
+
+    const q = this.gato.posicion();
+    this.spriteGato.setPosition((q.x + 0.5) * T, (q.y + 0.5) * T);
+    this.caraGato.setFlipX(this.gato.dir === "derecha");
+    // Cabeza flotante: rebota al caminar, quieta al dormir.
+    const t = this.time.now / 1000;
+    this.caraGato.y = this.siestaRestante > 0 ? -4 : -6 - Math.abs(Math.sin(t * 9)) * 2;
+    this.caraGato.rotation = this.siestaRestante > 0 ? 0.35 : Math.sin(t * 4.5) * 0.06;
+
+    // Orden de dibujo por profundidad: el que está más abajo se dibuja delante.
+    this.spriteRaton.setDepth(this.spriteRaton.y);
+    this.spriteGato.setDepth(this.spriteGato.y);
   }
 
   private dibujarLaberinto(): void {
@@ -179,13 +301,10 @@ export class Juego extends Phaser.Scene {
       this.tweens.add({ targets: dibujo, scale: 1.8, alpha: 0, duration: 180, onComplete: () => dibujo.destroy() });
     }
     this.events.emit("puntaje", { puntaje: this.despensa.puntaje, restantes: this.despensa.restantes, tipo });
-    if (this.despensa.ganado) this.ganar();
+    if (this.despensa.ganado) this.terminar(true);
   }
 
-  private ganar(): void {
-    this.terminado = true;
-    this.events.emit("ganaste", this.despensa.puntaje);
-  }
+  // ---------- vista y pausa ----------
 
   private alternarMapa(): void {
     this.mapaCompleto = !this.mapaCompleto;
@@ -200,12 +319,11 @@ export class Juego extends Phaser.Scene {
       this.mini.setVisible(false);
     } else {
       cam.zoomTo(niveles.general.zoomCamara, 300, "Sine.easeInOut");
-      cam.pan(this.sprite.x, this.sprite.y, 300, "Sine.easeInOut", false, (_c: Phaser.Cameras.Scene2D.Camera, avance: number) => {
-        if (avance === 1) cam.startFollow(this.sprite, true, 0.12, 0.12);
+      cam.pan(this.spriteRaton.x, this.spriteRaton.y, 300, "Sine.easeInOut", false, (_c: Phaser.Cameras.Scene2D.Camera, avance: number) => {
+        if (avance === 1 && !this.mapaCompleto) cam.startFollow(this.spriteRaton, true, 0.12, 0.12);
       });
       this.mini.setVisible(true);
     }
-    this.events.emit("mapa-completo", this.mapaCompleto);
   }
 
   private alternarPausa(): void {
