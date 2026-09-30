@@ -4,9 +4,11 @@ import { crearSticker, crearTexturasBase, texturaDe } from "../arte/texturas";
 import { MASCOTAS } from "../config/mascotas";
 import niveles from "../config/niveles.json";
 import { elegirAzar } from "../ia/azar";
+import { elegirHuida } from "../ia/huir";
 import { MAPA_CASA } from "../mapa/mapas";
 import { Despensa } from "../sistemas/Despensa";
-import { Grilla, type Dir, type TipoObjeto } from "../sistemas/grilla";
+import { Escondites } from "../sistemas/Escondites";
+import { Grilla, OPUESTA, type Dir, type TipoObjeto } from "../sistemas/grilla";
 import { MovedorGrilla } from "../sistemas/MovedorGrilla";
 
 const NIVEL = niveles.tomasito;
@@ -51,6 +53,19 @@ export class Juego extends Phaser.Scene {
   private siestaRestante = 0;
   private proximaSiesta = 0;
   private reloj = 0;
+  // Objetos especiales
+  private escondites!: Escondites;
+  private asustado = 0;
+  private volviendo = 0;
+  private turbo = 0;
+  private claveCafe = "";
+  private cafeVisible = false;
+  private cafeRestante = 0;
+  private cafeUsado = false;
+  private totalComible = 0;
+  private polvo = 0;
+  private ultimoEfecto = "";
+  private avisosVistos = new Set<string>();
 
   constructor() {
     super("Juego");
@@ -65,6 +80,14 @@ export class Juego extends Phaser.Scene {
 
     this.grilla = new Grilla(MAPA_CASA);
     this.despensa = new Despensa(this.grilla.objetos, niveles.general.puntos);
+    this.totalComible = this.despensa.restantes;
+    const cajas = this.grilla.objetos.filter((o) => o.tipo === "caja").map((o) => o.casilla);
+    this.escondites = new Escondites(cajas, niveles.general.cajaUsosPorVida, niveles.general.cajaSeg);
+    const cafe = this.grilla.objetos.find((o) => o.tipo === "cafe")!.casilla;
+    this.claveCafe = `${cafe.x},${cafe.y}`;
+    this.cafeVisible = false;
+    this.cafeUsado = false;
+    this.ultimoEfecto = "";
     const anchoMundo = this.grilla.ancho * T;
     const altoMundo = this.grilla.alto * T;
 
@@ -72,6 +95,8 @@ export class Juego extends Phaser.Scene {
     this.mundo = this.add.layer();
     this.dibujarHabitacion();
     this.dibujarObjetos();
+    // El cafecito aparece recién a mitad del nivel.
+    this.dibujosObjetos.get(this.claveCafe)?.setVisible(false);
 
     crearTexturasBase(this);
     this.sombraRaton = this.add.ellipse(0, 0, 14, 5, 0x2b170a, 0.3);
@@ -103,17 +128,42 @@ export class Juego extends Phaser.Scene {
     }
     const g = niveles.general;
 
-    this.quesito.actualizar(dt, g.velocidadRaton);
-    if (this.fase !== "jugando") return; // pudo ganar justo en este paso
+    // Relojes de los objetos especiales
+    if (this.turbo > 0) this.turbo -= dt;
+    if (this.escondites.actualizar(dt)) this.avisar("asomo", "Se acabó el escondite: Quesito quedó a la vista.");
+    if (this.cafeVisible) {
+      this.cafeRestante -= dt;
+      if (this.cafeRestante <= 0) this.ocultarCafe();
+    }
 
-    if (NIVEL.siesta) this.actualizarSiesta(dt);
-    if (this.siestaRestante <= 0) {
-      const enGatera = this.grilla.gateras.some((c) => c.x === this.gato.x && c.y === this.gato.y);
-      this.gato.actualizar(dt, g.velocidadRaton * NIVEL.velocidadGato * (enGatera ? g.velocidadGateraGato : 1));
+    // Quesito
+    this.quesito.actualizar(dt, g.velocidadRaton * (this.turbo > 0 ? g.turbo : 1));
+    if (this.fase !== "jugando") return; // pudo ganar justo en este paso
+    if (this.escondites.escondido && this.quesito.progreso > 0) this.escondites.salir();
+    if (this.turbo > 0 && !this.quesito.detenido) this.soltarPolvo(dt);
+
+    // Gato
+    if (this.volviendo > 0) {
+      this.volviendo -= dt;
+      if (this.volviendo <= 0) this.gatoVuelve();
+    } else {
+      if (this.asustado > 0) {
+        this.asustado -= dt;
+        if (this.asustado <= 0) this.avisar("", "Tomasito ya no tiene miedo.");
+      } else if (NIVEL.siesta) this.actualizarSiesta(dt);
+      if (this.siestaRestante <= 0) {
+        const enGatera = this.grilla.gateras.some((c) => c.x === this.gato.x && c.y === this.gato.y);
+        const miedo = this.asustado > 0 ? g.gatoAsustadoVelocidad : 1;
+        this.gato.actualizar(dt, g.velocidadRaton * NIVEL.velocidadGato * miedo * (enGatera ? g.velocidadGateraGato : 1));
+      }
     }
 
     this.actualizarSprites(!this.quesito.detenido);
-    if (this.seTocan()) this.atrapado();
+    this.informarEfectos();
+    if (this.volviendo <= 0 && !this.escondites.escondido && this.seTocan()) {
+      if (this.asustado > 0) this.tocarGatoAsustado();
+      else this.atrapado();
+    }
   }
 
   // ---------- ciclo de vida ----------
@@ -125,13 +175,16 @@ export class Juego extends Phaser.Scene {
     this.quesito = new MovedorGrilla(this.grilla, r.x, r.y);
     this.quesito.dir = "abajo";
     this.quesito.alLlegar = (x, y) => this.comer(x, y);
-    this.gato = new MovedorGrilla(this.grilla, gi.x, gi.y);
-    this.gato.alLlegar = (x, y) => this.gato.pedir(this.decidirGato(x, y));
-    this.gato.pedir(this.decidirGato(gi.x, gi.y));
+    this.crearGato(gi.x, gi.y);
     this.siestaRestante = 0;
     this.proximaSiesta = this.sortearSiesta();
+    this.escondites.reiniciar();
+    this.asustado = 0;
+    this.volviendo = 0;
+    this.turbo = 0;
 
-    this.spriteGato.setScale(ALTO_GATO / this.spriteGato.height).setAlpha(1);
+    this.spriteGato.setScale(ALTO_GATO / this.spriteGato.height).setAlpha(1).clearTint();
+    this.sombraGato.setVisible(true);
     this.spriteRaton.setScale(1).setAlpha(1);
     this.actualizarSprites(false);
     this.comer(r.x, r.y);
@@ -139,6 +192,10 @@ export class Juego extends Phaser.Scene {
     if (!this.mapaCompleto) this.cameras.main.startFollow(this.spriteRaton, true, 0.12, 0.12, 0, 10);
 
     this.fase = "listo";
+    this.avisar(
+      "inicio",
+      "Come todo el queso sin que Tomasito te atrape.  Pepino: lo asusta.  Caja: te escondes.  Cafecito (aparece a la mitad): turbo.",
+    );
     this.events.emit("vidas", this.vidas);
     this.events.emit("listo", true);
     this.time.delayedCall(niveles.general.esperaInicioSeg * 1000, () => {
@@ -184,8 +241,49 @@ export class Juego extends Phaser.Scene {
 
   // ---------- gato ----------
 
+  private crearGato(x: number, y: number): void {
+    this.gato = new MovedorGrilla(this.grilla, x, y);
+    this.gato.alLlegar = (cx, cy) => this.gato.pedir(this.decidirGato(cx, cy));
+    this.gato.pedir(this.decidirGato(x, y));
+  }
+
+  /** Asustado: huye. Quesito escondido: el gato no lo ve y pasea al azar. Si no: persigue. */
   private decidirGato(x: number, y: number): Dir {
-    return elegirAzar(this.grilla, { x, y }, this.gato.dir, { x: this.quesito.x, y: this.quesito.y }, NIVEL.probPerseguir);
+    const raton = { x: this.quesito.x, y: this.quesito.y };
+    if (this.asustado > 0) return elegirHuida(this.grilla, { x, y }, this.gato.dir, raton);
+    const prob = this.escondites.escondido ? 0 : NIVEL.probPerseguir;
+    return elegirAzar(this.grilla, { x, y }, this.gato.dir, raton, prob);
+  }
+
+  /** Pepino: el gato se asusta, despierta si dormía y se da vuelta de inmediato. */
+  private asustarGato(): void {
+    if (this.volviendo > 0) return;
+    this.asustado = NIVEL.pepinoSeg;
+    this.siestaRestante = 0;
+    this.events.emit("siesta", false);
+    this.gato.pedir(OPUESTA[this.gato.dir]);
+    this.avisar("pepino", "¡Pepino! Tomasito se asustó y huye. Tócalo para mandarlo a su cama (+200).");
+  }
+
+  /** Quesito toca al gato asustado: puntos extra y el gato vuelve a su cama un rato. */
+  private tocarGatoAsustado(): void {
+    const g = niveles.general;
+    this.despensa.sumar(g.puntosTocarGato);
+    this.events.emit("puntaje", { puntaje: this.despensa.puntaje, restantes: this.despensa.restantes });
+    this.textoFlotante(this.spriteGato.x, this.spriteGato.y - 34, `+${g.puntosTocarGato}`);
+    this.asustado = 0;
+    this.volviendo = g.gatoVuelveSeg;
+    this.sombraGato.setVisible(false);
+    this.tweens.add({ targets: this.spriteGato, alpha: 0, scale: this.spriteGato.scale * 0.3, duration: 300 });
+    this.avisar("cama", "¡Tomasito corrió a su cama! Vuelve en unos segundos.");
+  }
+
+  private gatoVuelve(): void {
+    const gi = this.grilla.inicioGato;
+    this.crearGato(gi.x, gi.y);
+    this.spriteGato.clearTint().setScale(ALTO_GATO / this.spriteGato.height).setAlpha(0);
+    this.sombraGato.setVisible(true);
+    this.tweens.add({ targets: this.spriteGato, alpha: 1, duration: 400 });
   }
 
   private sortearSiesta(): number {
@@ -229,18 +327,36 @@ export class Juego extends Phaser.Scene {
     const d = this.quesito.dir;
     const vista = d === "arriba" ? "espalda" : d === "abajo" ? "frente" : "lado";
     const paso = caminando ? Math.floor(this.reloj * 8) % 2 : 0;
-    this.spriteRaton.setTexture(`quesito-${vista}-${paso}`).setFlipX(d === "izquierda");
-    this.spriteRaton.setPosition(rx, ry - (caminando ? paso : 0)).setDepth(ry);
-    this.sombraRaton.setPosition(rx, ry - 1).setDepth(ry - 0.5);
+    if (this.escondites?.escondido) {
+      // Dentro de la caja: se dibuja justo detrás de ella, así solo se le ven las orejas.
+      const baseCaja = Math.round(p.y * T + 17);
+      this.spriteRaton.setTexture("quesito-frente-0").setFlipX(false);
+      this.spriteRaton.setPosition(rx, baseCaja - 3 + Math.round(Math.sin(this.reloj * 3))).setDepth(baseCaja - 1);
+      this.sombraRaton.setVisible(false);
+    } else {
+      this.spriteRaton.setTexture(`quesito-${vista}-${paso}`).setFlipX(d === "izquierda");
+      this.spriteRaton.setPosition(rx, ry - (caminando ? paso : 0)).setDepth(ry);
+      this.sombraRaton.setVisible(true).setPosition(rx, ry - 1).setDepth(ry - 0.5);
+    }
 
     const q = this.gato.posicion();
     const gx = (q.x + 0.5) * T;
     const gy = (q.y + 0.5) * T + 10;
     const durmiendo = this.siestaRestante > 0;
-    // Cabeza flotante: rebota al caminar y se inclina al dormir.
+    const miedo = this.asustado > 0;
+    // Cabeza flotante: rebota al caminar, se inclina al dormir y tiembla si está asustado.
+    const temblor = miedo ? Math.sin(this.reloj * 60) * 0.12 : 0;
     this.spriteGato.setPosition(gx, gy - 4 - (durmiendo ? 0 : Math.abs(Math.sin(this.reloj * 9)) * 2));
-    this.spriteGato.setRotation(durmiendo ? 0.35 : Math.sin(this.reloj * 4.5) * 0.06);
+    this.spriteGato.setRotation(durmiendo ? 0.35 : Math.sin(this.reloj * 4.5) * 0.06 + temblor);
     this.spriteGato.setFlipX(this.gato.dir === "derecha").setDepth(gy);
+    if (miedo) {
+      this.spriteGato.setTint(0x9fc6ff);
+      // Los últimos 2 segundos parpadea: el susto se le está pasando.
+      if (this.volviendo <= 0) this.spriteGato.setAlpha(this.asustado < 2 && Math.floor(this.reloj * 8) % 2 ? 0.45 : 1);
+    } else if (this.volviendo <= 0) {
+      this.spriteGato.clearTint();
+      if (this.fase !== "atrapado") this.spriteGato.setAlpha(1);
+    }
     this.sombraGato.setPosition(gx, gy - 1).setDepth(gy - 0.5);
 
     this.marcaRaton.setPosition(rx, ry - 9);
@@ -301,17 +417,107 @@ export class Juego extends Phaser.Scene {
     this.cameras.main.ignore(soloMini);
   }
 
+  /** Quesito llega a una casilla: se come lo que haya, o se mete en la caja. */
   private comer(x: number, y: number): void {
+    const k = `${x},${y}`;
+    if (this.escondites.entrar(x, y)) return this.entrarCaja(k);
+    if (k === this.claveCafe && !this.cafeVisible) return; // el cafecito todavía no aparece (o ya se fue)
+
     const tipo = this.despensa.comer(x, y);
     if (!tipo) return;
-    const k = `${x},${y}`;
     const dibujo = this.dibujosObjetos.get(k);
     if (dibujo) {
       this.dibujosObjetos.delete(k);
       this.tweens.add({ targets: dibujo, scale: 1.6, alpha: 0, y: dibujo.y - 4, duration: 160, onComplete: () => dibujo.destroy() });
     }
     this.events.emit("puntaje", { puntaje: this.despensa.puntaje, restantes: this.despensa.restantes, tipo: tipo as TipoObjeto });
+
+    if (tipo === "pepino") this.asustarGato();
+    if (tipo === "cafe") {
+      this.cafeVisible = false;
+      this.turbo = niveles.general.turboSeg;
+      this.avisar("cafe", "¡Cafecito! Quesito corre más rápido por 5 segundos.");
+    }
+    if (!this.cafeUsado && this.despensa.restantes <= this.totalComible * niveles.general.cafeApareceAlQuedar) this.mostrarCafe();
     if (this.despensa.ganado) this.terminar(true);
+  }
+
+  private entrarCaja(k: string): void {
+    this.quesito.detener();
+    const caja = this.dibujosObjetos.get(k);
+    if (caja) this.tweens.add({ targets: caja, angle: { from: -8, to: 0 }, duration: 250, ease: "Back.easeOut" });
+    const usos = this.escondites.usosDe(Number(k.split(",")[0]), Number(k.split(",")[1]));
+    this.avisar(
+      "caja",
+      `Quesito se escondió en la caja: el gato ya no lo ve. Quédate quieto hasta 4 s; muévete para salir. (Esta caja: ${usos} uso${usos === 1 ? "" : "s"} más)`,
+      true,
+    );
+  }
+
+  /** El cafecito aparece una sola vez por nivel, cuando queda la mitad del queso, y dura unos segundos. */
+  private mostrarCafe(): void {
+    this.cafeUsado = true;
+    this.cafeVisible = true;
+    this.cafeRestante = niveles.general.cafeDuraSeg;
+    const img = this.dibujosObjetos.get(this.claveCafe);
+    if (img) {
+      img.setVisible(true).setScale(0);
+      this.tweens.add({ targets: img, scale: 1, duration: 400, ease: "Back.easeOut" });
+    }
+    this.avisar("cafe-aparece", `¡Apareció un cafecito en el centro! Se va en ${niveles.general.cafeDuraSeg} segundos.`, true);
+  }
+
+  private ocultarCafe(): void {
+    this.cafeVisible = false;
+    const img = this.dibujosObjetos.get(this.claveCafe);
+    if (img) this.tweens.add({ targets: img, scale: 0, duration: 250, onComplete: () => img.setVisible(false) });
+  }
+
+  // ---------- avisos y efectos ----------
+
+  /**
+   * Muestra un mensaje en pantalla. Con `clave`, el mensaje solo sale la primera vez en la sesión
+   * (sirve de tutorial); `siempre` lo muestra de nuevo cada vez.
+   */
+  private avisar(clave: string, texto: string, siempre = false): void {
+    if (clave && !siempre && this.avisosVistos.has(clave)) return;
+    if (clave) this.avisosVistos.add(clave);
+    this.events.emit("aviso", texto);
+  }
+
+  /** Mantiene al día el cartelito de efectos activos (turbo, pepino, escondite). */
+  private informarEfectos(): void {
+    const partes: string[] = [];
+    if (this.turbo > 0) partes.push(`☕ Turbo ${Math.ceil(this.turbo)} s`);
+    if (this.asustado > 0) partes.push(`🥒 Tomasito asustado ${Math.ceil(this.asustado)} s`);
+    if (this.escondites.escondido) partes.push(`📦 Escondido ${Math.ceil(this.escondites.restante)} s`);
+    if (this.volviendo > 0) partes.push(`Tomasito en su cama ${Math.ceil(this.volviendo)} s`);
+    if (this.cafeVisible) partes.push(`Cafecito disponible ${Math.ceil(this.cafeRestante)} s`);
+    const texto = partes.join("   ·   ");
+    if (texto !== this.ultimoEfecto) {
+      this.ultimoEfecto = texto;
+      this.events.emit("efectos", texto);
+    }
+  }
+
+  private textoFlotante(x: number, y: number, texto: string): void {
+    const t = this.add
+      .text(x, y, texto, { fontFamily: "Trebuchet MS, sans-serif", fontSize: "11px", color: "#ffffff", stroke: "#2b1d16", strokeThickness: 3, fontStyle: "bold" })
+      .setOrigin(0.5)
+      .setResolution(4)
+      .setDepth(200000);
+    this.mundo.add(t);
+    this.tweens.add({ targets: t, y: y - 16, alpha: 0, duration: 1000, onComplete: () => t.destroy() });
+  }
+
+  /** Estela de polvo detrás de Quesito mientras dura el turbo. */
+  private soltarPolvo(dt: number): void {
+    this.polvo -= dt;
+    if (this.polvo > 0) return;
+    this.polvo = 0.06;
+    const p = this.add.ellipse(this.spriteRaton.x, this.spriteRaton.y - 2, 6, 3, 0xfff6d6, 0.8).setDepth(this.spriteRaton.depth - 1);
+    this.mundo.add(p);
+    this.tweens.add({ targets: p, alpha: 0, scale: 2, duration: 350, onComplete: () => p.destroy() });
   }
 
   // ---------- vista y pausa ----------

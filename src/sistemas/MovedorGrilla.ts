@@ -40,6 +40,14 @@ export class MovedorGrilla {
     }
   }
 
+  /** Detiene al personaje en el centro de su casilla y olvida el giro pedido (por ejemplo, al entrar a una caja). */
+  detener(): void {
+    if (this.progreso === 0) {
+      this.detenido = true;
+      this.pedida = null;
+    }
+  }
+
   /** Avanza `dt` segundos a `velocidad` casillas por segundo. */
   actualizar(dt: number, velocidad: number): void {
     let paso = dt * velocidad;

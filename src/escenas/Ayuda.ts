@@ -13,7 +13,13 @@ export class Ayuda extends Phaser.Scene {
 
     const puntaje = this.add.text(12, height - 12, "PUNTOS 000000", { ...estilo, fontSize: "22px" }).setOrigin(0, 1);
     const vidas = this.add.text(width - 12, height - 12, "", { ...estilo, fontSize: "22px", color: "#f2b93b" }).setOrigin(1, 1);
-    const siesta = this.add.text(width / 2, 60, "Tomasito está durmiendo una siesta… zzz", { ...estilo, color: "#9fc6e8" }).setOrigin(0.5, 0).setVisible(false);
+    const siesta = this.add.text(width / 2, 100, "Tomasito está durmiendo una siesta… zzz", { ...estilo, color: "#9fc6e8" }).setOrigin(0.5, 0).setVisible(false);
+    const efectos = this.add.text(width / 2, 58, "", { ...estilo, fontSize: "20px", color: "#ffe7a0" }).setOrigin(0.5, 0).setVisible(false);
+    const aviso = this.add
+      .text(width / 2, height - 70, "", { ...estilo, fontSize: "20px", align: "center", wordWrap: { width: width * 0.7 } })
+      .setOrigin(0.5, 1)
+      .setVisible(false);
+    let quitarAviso: Phaser.Time.TimerEvent | null = null;
 
     const cartel = (texto: string) =>
       this.add.text(width / 2, height / 2, texto, { ...estilo, fontSize: "36px", align: "center", padding: { x: 28, y: 18 } }).setOrigin(0.5).setVisible(false);
@@ -26,6 +32,12 @@ export class Ayuda extends Phaser.Scene {
       pausa: (activa: boolean) => pausa.setVisible(activa),
       listo: (activo: boolean) => listo.setVisible(activo),
       siesta: (activa: boolean) => siesta.setVisible(activa),
+      efectos: (texto: string) => efectos.setText(texto).setVisible(texto !== ""),
+      aviso: (texto: string) => {
+        aviso.setText(texto).setVisible(true).setAlpha(1);
+        quitarAviso?.remove();
+        quitarAviso = this.time.delayedCall(4500, () => this.tweens.add({ targets: aviso, alpha: 0, duration: 400 }));
+      },
       vidas: (n: number) => vidas.setText(`VIDAS ${"● ".repeat(Math.max(0, n)).trim() || "—"}`),
       puntaje: (d: { puntaje: number; restantes: number }) =>
         puntaje.setText(`PUNTOS ${String(d.puntaje).padStart(6, "0")}   ·   quedan ${d.restantes}`),

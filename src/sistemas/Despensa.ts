@@ -32,6 +32,16 @@ export class Despensa {
     return tipo;
   }
 
+  /** Puntos que no vienen de comer (por ejemplo, tocar al gato asustado). */
+  sumar(puntos: number): void {
+    this.puntaje += puntos;
+  }
+
+  /** ¿Todavía hay algo en esa casilla? */
+  tiene(x: number, y: number): boolean {
+    return this.objetos.has(clave(x, y));
+  }
+
   get restantes(): number {
     return this.pendientes;
   }

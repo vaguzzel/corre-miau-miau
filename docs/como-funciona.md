@@ -227,7 +227,40 @@ Así cualquier foto nueva recibe su borde automáticamente, sin editarla a mano.
 
 ---
 
-## 12. Pruebas automáticas
+## 12. Objetos especiales
+
+**Archivos:** [`src/ia/huir.ts`](../src/ia/huir.ts), [`src/sistemas/Escondites.ts`](../src/sistemas/Escondites.ts) y `Juego.ts` (métodos `comer`, `asustarGato`, `entrarCaja`, `mostrarCafe`)
+
+### Pepino: el gato se asusta
+
+1. Al comerlo, el gato **se da vuelta de inmediato** (como los fantasmas de Pac-Man), despierta si dormía, se pone azul y tiembla.
+2. Durante el susto (8 s con Tomasito) **huye**. En cada cruce elige el camino que lo deja **más lejos de Quesito, contando pasos reales por los pasillos**. Para eso se usa `mapaDistancias`: el mismo BFS, pero en vez de parar al encontrar algo, recorre todo el mapa y anota a cuántos pasos de Quesito está cada casilla.
+3. Va al 60% de su velocidad. Los últimos 2 segundos parpadea para avisar que el susto se acaba.
+4. Si Quesito lo toca mientras está asustado: **+200 puntos** y el gato "corre a su cama". Desaparece y vuelve a su casilla de inicio 3 segundos después.
+
+### Caja de cartón: esconderse
+
+1. Quesito entra a la caja pasando por su casilla. Se **detiene solo** adentro (`MovedorGrilla.detener()`) y solo se le ven las orejas.
+2. Mientras está escondido:
+   - el gato no puede atraparlo;
+   - el gato **pierde el rastro**: su probabilidad de perseguir baja a 0 y pasea al azar.
+3. Para salir, basta moverse. Si se queda más de 4 segundos, "se asoma" y vuelve a estar a la vista, aunque siga quieto.
+4. Cada caja sirve **2 veces por vida**. Los usos vuelven al perder una vida. La clase `Escondites` lleva esa cuenta y el tiempo, y tiene pruebas propias.
+
+### Cafecito: turbo
+
+1. **No está al comienzo:** aparece una sola vez, en el centro del mapa, cuando queda la mitad del queso, y se va si no lo tomas en 10 segundos.
+2. Al tomarlo, Quesito corre un 30% más rápido por 5 segundos y deja una estela de polvo.
+
+### Avisos
+
+La primera vez que pasa cada cosa (empezar, pepino, caja, cafecito), aparece abajo un mensaje que explica qué hace. Funciona como un tutorial que no interrumpe el juego. Arriba al centro, un cartel muestra los efectos activos y cuántos segundos les quedan.
+
+## 13. Muros claros: las tarimas
+
+Cada mueble se dibuja sobre una **tarima de madera oscura** que cubre exactamente las casillas que bloquea. Así, aunque un mueble no llene todo su espacio (un piano de cola, unas plantas, una mesa redonda), se ve con claridad dónde no se puede pasar. La regla visual es simple: **piso de tablas = pasillo; tarima = muro**.
+
+## 14. Pruebas automáticas
 
 `npm test` corre las pruebas con Vitest. Revisan, entre otras cosas:
 
@@ -236,4 +269,5 @@ Así cualquier foto nueva recibe su borde automáticamente, sin editarla a mano.
 - que BFS rodee muros, use gateras y siempre llegue a Quesito;
 - que la IA de Tomasito no se dé vuelta y use todos los caminos cuando se distrae;
 - el puntaje y la condición de victoria;
-- que los 36 muebles del living calcen exactamente con los muros del mapa.
+- que los 36 muebles del living calcen exactamente con los muros del mapa;
+- que el gato asustado elija el camino más lejano, y que las cajas tengan 2 usos por vida y un máximo de 4 segundos.

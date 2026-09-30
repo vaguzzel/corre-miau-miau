@@ -3,6 +3,29 @@ import type { Casilla, Dir, Grilla } from "../sistemas/grilla";
 const DIRS: Dir[] = ["arriba", "izquierda", "abajo", "derecha"];
 
 /**
+ * Distancia en pasos (por los pasillos) desde `origen` hasta cada casilla. -1 = inalcanzable o muro.
+ * Es el mismo BFS, pero en vez de detenerse al encontrar algo, recorre todo el mapa.
+ */
+export function mapaDistancias(grilla: Grilla, origen: Casilla): Int16Array {
+  const dist = new Int16Array(grilla.ancho * grilla.alto).fill(-1);
+  dist[origen.y * grilla.ancho + origen.x] = 0;
+  const cola: Casilla[] = [origen];
+  for (let i = 0; i < cola.length; i++) {
+    const c = cola[i];
+    const dc = dist[c.y * grilla.ancho + c.x];
+    for (const d of DIRS) {
+      if (!grilla.puedeMover(c.x, c.y, d)) continue;
+      const v = grilla.vecino(c.x, c.y, d);
+      const k = v.y * grilla.ancho + v.x;
+      if (dist[k] !== -1) continue;
+      dist[k] = dc + 1;
+      cola.push(v);
+    }
+  }
+  return dist;
+}
+
+/**
  * Búsqueda en anchura (BFS): explora el laberinto "en ondas" desde `desde`
  * hasta encontrar `hasta`, y devuelve el primer paso del camino más corto.
  * Devuelve null si ya está ahí o si no hay camino.

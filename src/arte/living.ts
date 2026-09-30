@@ -566,12 +566,26 @@ const L_INDIVIDUAL: Dibujo[] = [
   plantasRincon("monstera", "helecho"),
 ];
 
+/**
+ * Tarima baja que ocupa exactamente la huella de cada mueble. Es la señal visual de "aquí no se pasa":
+ * aunque un mueble no llene todo su espacio (un piano, unas plantas), su tarima marca el borde del muro.
+ */
+function tarima(l: Lienzo, x: number, y: number, w: number, h: number): void {
+  caja(l, x, y, w, h, 4, 0x9c6a42, P.maderaOsc, {
+    tapa: (l2, tx, ty, tw, th) => {
+      for (let j = 3; j < th - 1; j += 4) l2.hline(tx + 1, ty + j, tw - 2, 0x8e5f3a);
+      l2.marco(tx, ty, tw, th, P.maderaMed);
+    },
+  });
+}
+
 /** Dibuja cada mueble del living en su propio lienzo, listo para ordenarse por profundidad. */
 export function mueblesLiving(): SpriteMueble[] {
   return BLOQUES.map(([bx, by, bw, bh], i) => {
     const w = bw * T;
     const h = bh * T;
     const l = new Lienzo(w + MARGEN * 2, h + ARRIBA + ABAJO);
+    tarima(l, MARGEN, ARRIBA, w, h);
     L_INDIVIDUAL[i](l, MARGEN, ARRIBA, w, h);
     l.contorno(P.tinta);
     return { lienzo: l, x: bx * T - MARGEN, y: by * T - ARRIBA, profundidad: (by + bh) * T };
