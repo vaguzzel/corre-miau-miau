@@ -2,7 +2,7 @@
 
 Juego tipo Pac-Man en pixel art: controlas a **Quesito**, un ratón que recorre la casa comiendo queso mientras Tomasito, Begoña y Eren lo persiguen. Al final, un nivel tranquilo con Violeta.
 
-> En desarrollo. El plan completo está en [`docs/plan.md`](docs/plan.md).
+> En desarrollo. El plan completo está en [`docs/plan.md`](docs/plan.md) y cómo funciona cada mecánica y algoritmo en [`docs/como-funciona.md`](docs/como-funciona.md).
 
 ## Tecnologías
 
