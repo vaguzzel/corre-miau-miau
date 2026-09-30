@@ -1,6 +1,8 @@
 # Corre Miau Miau
 
-### ▶ [Jugar en el navegador](https://vaguzzel.github.io/corre-miau-miau/) · [Descargar para Windows / Mac](https://github.com/vaguzzel/corre-miau-miau/releases/latest)
+### ▶ [Jugar en el navegador](https://corre-miau-miau.vercel.app/) · [Descargar para Windows / Mac](https://github.com/vaguzzel/corre-miau-miau/releases/latest)
+
+También disponible en [GitHub Pages](https://vaguzzel.github.io/corre-miau-miau/).
 
 Juego tipo Pac-Man en pixel art, en vista 3/4. Controlas a **Quesito**, un ratón que recorre la casa comiendo queso mientras **Tomasito**, **Begoña** y **Eren** (mis gatos, con sus fotos reales como stickers) lo persiguen. Cada gato piensa distinto: al azar, con BFS y con A\*. Al final, un nivel tranquilo con **Violeta**, mi poodle.
 
