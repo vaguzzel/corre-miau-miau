@@ -9,7 +9,7 @@ export class Ayuda extends Phaser.Scene {
   create(): void {
     const { width, height } = this.scale;
     const estilo = { fontFamily: "Trebuchet MS, sans-serif", fontSize: "18px", color: "#fbefd9", backgroundColor: "#3a271bcc", padding: { x: 10, y: 6 } };
-    this.add.text(12, 12, "Flechas o WASD: mover   ·   M: mapa completo   ·   ESPACIO: pausa", estilo);
+    this.add.text(12, 12, "Flechas o WASD: mover   ·   M: mapa completo   ·   ESPACIO: pausa   ·   ESC: elegir nivel", estilo);
 
     const puntaje = this.add.text(12, height - 12, "PUNTOS 000000", { ...estilo, fontSize: "22px" }).setOrigin(0, 1);
     const vidas = this.add.text(width - 12, height - 12, "", { ...estilo, fontSize: "22px", color: "#f2b93b" }).setOrigin(1, 1);

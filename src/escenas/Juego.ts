@@ -174,6 +174,11 @@ export class Juego extends Phaser.Scene {
   }
 
   private alApretar(e: KeyboardEvent): void {
+    if (e.code === "Escape") {
+      this.scene.stop("Ayuda");
+      this.scene.start("Inicio");
+      return;
+    }
     if (this.fase === "fin") {
       if (e.code === "Space") this.scene.restart();
       return;
