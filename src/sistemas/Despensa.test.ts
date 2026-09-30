@@ -3,7 +3,7 @@ import { MAPA_CASA } from "../mapa/mapas";
 import { Despensa } from "./Despensa";
 import { Grilla } from "./grilla";
 
-const PUNTOS = { queso: 10, pepino: 50, cafe: 100, caja: 0 };
+const PUNTOS = { queso: 10, pepino: 50, cafe: 100, caja: 0, corazon: 100 };
 
 describe("Despensa", () => {
   it("suma puntos según lo que come y no come dos veces lo mismo", () => {

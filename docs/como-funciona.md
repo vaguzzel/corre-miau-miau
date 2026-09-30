@@ -159,8 +159,11 @@ La pausa (ESPACIO) es aparte: congela cualquier fase.
 |---|---|
 | Flechas o WASD | Mover a Quesito |
 | M | Mapa completo / volver a la cámara |
-| ESPACIO | Pausa (y jugar de nuevo al terminar) |
+| ESPACIO | Pausa · al terminar: siguiente nivel o reintentar |
+| N | Sonido sí / no |
 | ESC | Volver a elegir nivel |
+| I (en el menú) | Español / English |
+| Deslizar el dedo | Mover a Quesito (celular) |
 
 ---
 
@@ -260,7 +263,70 @@ La primera vez que pasa cada cosa (empezar, pepino, caja, cafecito), aparece aba
 
 Cada mueble se dibuja sobre una **tarima de madera oscura** que cubre exactamente las casillas que bloquea. Así, aunque un mueble no llene todo su espacio (un piano de cola, unas plantas, una mesa redonda), se ve con claridad dónde no se puede pasar. La regla visual es simple: **piso de tablas = pasillo; tarima = muro**.
 
-## 14. Pruebas automáticas
+## 14. Los tres gatos: tres inteligencias distintas
+
+**Archivos:** [`src/niveles/niveles.ts`](../src/niveles/niveles.ts), [`src/ia/`](../src/ia/) y `Juego.ts` (método `decidirGato`)
+
+Cada nivel es la misma escena (`Juego`) con otra configuración: otra habitación, otro gato y otra IA. El cerebro del gato decide en cada casilla, en este orden de prioridad:
+
+1. **Asustado** (pepino) → huye (sección 12).
+2. **Quesito escondido** (caja) → pasea al azar.
+3. **Patrullando** → va a su rincón por el camino más corto (BFS).
+4. **Cazando** → usa la IA de su nivel:
+
+| Gato | Velocidad | IA al cazar | Qué aprendes |
+|---|---|---|---|
+| Tomasito | 75% | BFS el 85% de las veces, al azar el resto; siestas | Grafos, BFS, azar controlado |
+| Begoña | 95% | **BFS** siempre, hacia Quesito | Colas, camino más corto |
+| Eren | 110% | **A\*** hacia 4 casillas **delante** de Quesito | Heurísticas, colas de prioridad |
+
+### Patrullar y cazar (Begoña y Eren)
+
+**Archivo:** [`src/ia/modos.ts`](../src/ia/modos.ts)
+
+Como los fantasmas del Pac-Man original, Begoña y Eren no persiguen todo el tiempo: siguen un **horario de modos**. Por ejemplo, Begoña patrulla su rincón 7 s, caza 20 s, patrulla 7 s, caza 20 s, patrulla 5 s y después caza para siempre. En cada cambio de modo el gato **se da vuelta**, igual que en Pac-Man: así el jugador nota el cambio y tiene un respiro.
+
+### A\* (Eren)
+
+**Archivo:** [`src/ia/astar.ts`](../src/ia/astar.ts)
+
+A\* es como BFS, pero en vez de explorar en ondas parejas, **explora primero lo que parece más cerca de la meta**. A cada casilla le da un puntaje `f = g + h`:
+
+- `g`: pasos ya caminados desde el gato;
+- `h`: estimación de lo que falta (distancia **Manhattan**: cuántas casillas en horizontal más cuántas en vertical, considerando el atajo de las gateras).
+
+Las casillas por revisar esperan en una **cola de prioridad** implementada con un **montículo binario (heap)**: siempre entrega la de menor `f` en tiempo logarítmico. Como `h` nunca sobreestima, A\* encuentra el camino más corto igual que BFS (hay una prueba que lo confirma), pero visitando menos casillas.
+
+**El truco de Eren:** no apunta a Quesito, sino a la casilla que está **4 pasos delante** de él, en la dirección en que corre (`casillaAdelante`). Por eso no te sigue: **te corta el paso**. Es la estrategia de Pinky, el fantasma rosado de Pac-Man.
+
+## 15. El final: el rincón de Violeta
+
+**Archivos:** [`src/escenas/Violeta.ts`](../src/escenas/Violeta.ts), [`src/arte/rincon.ts`](../src/arte/rincon.ts) y [`src/escenas/Final.ts`](../src/escenas/Final.ts)
+
+- Tiene **su propio mapa** (19×13). En vez de escribirlo a mano, se **arma a partir de la lista de muebles**: se parte de un cuarto vacío y se pone un muro donde hay mueble. Así el mapa y el dibujo nunca se desalinean. Una prueba confirma que se puede llegar a los 12 corazones y a Violeta.
+- No hay gato: Quesito junta los corazones y, cuando los tiene todos, toca a Violeta. Si llega antes, Violeta ladra y avisa que faltan.
+- La **escena final** es una línea de tiempo: se acerca → Violeta ladra → Quesito duda y retrocede → vuelve con un corazón → se abrazan con lluvia de corazones → créditos y puntaje total.
+- La interfaz usa una **segunda cámara sin zoom**: la principal (×3) ignora los textos y la de interfaz ignora el mundo.
+
+## 16. Sonido sin archivos
+
+**Archivo:** [`src/sistemas/Sonido.ts`](../src/sistemas/Sonido.ts)
+
+Todos los sonidos se **generan con la Web Audio API**: cada efecto es una secuencia de notas (frecuencia, duración y forma de onda: cuadrada, triangular, sierra o seno).
+
+- Comer queso alterna dos notas, como el "waka waka" de Pac-Man.
+- La música de fondo son acordes suaves y una melodía de 32 pasos. Para que no se corte si el juego se pone lento, se **programa por adelantado**: cada 200 ms se agendan las notas de los próximos 600 ms en el reloj del audio.
+- Los navegadores solo permiten sonido después de una tecla o un clic, por eso el audio se activa con la primera interacción.
+- **N** silencia o activa el sonido, y queda guardado.
+
+## 17. Idiomas, guardado y controles
+
+- **Español e inglés** ([`src/i18n/textos.ts`](../src/i18n/textos.ts)): todos los textos están en dos diccionarios con las mismas claves. TypeScript obliga a que el inglés tenga exactamente las mismas claves que el español, así que no puede faltar ninguna traducción. `t("clave", { g: "Eren" })` reemplaza las `{llaves}`. **I** cambia el idioma en el menú.
+- **Guardado** ([`src/sistemas/Guardado.ts`](../src/sistemas/Guardado.ts)): récord por nivel, niveles completados, idioma y sonido se guardan en `localStorage`. Todo va envuelto en `try/catch`: si el navegador no deja guardar (modo incógnito), el juego sigue funcionando.
+- **Vida extra** cada 10.000 puntos.
+- **Celular:** deslizar el dedo mueve a Quesito, y hay botones grandes para pausa, mapa, sonido y menú.
+
+## 18. Pruebas automáticas
 
 `npm test` corre las pruebas con Vitest. Revisan, entre otras cosas:
 
@@ -270,4 +336,6 @@ Cada mueble se dibuja sobre una **tarima de madera oscura** que cubre exactament
 - que la IA de Tomasito no se dé vuelta y use todos los caminos cuando se distrae;
 - el puntaje y la condición de victoria;
 - que los 36 muebles del living calcen exactamente con los muros del mapa;
-- que el gato asustado elija el camino más lejano, y que las cajas tengan 2 usos por vida y un máximo de 4 segundos.
+- que el gato asustado elija el camino más lejano, y que las cajas tengan 2 usos por vida y un máximo de 4 segundos;
+- que A\* encuentre caminos tan cortos como BFS, que Eren apunte delante de Quesito sin atravesar muros y que el horario de modos alterne bien;
+- que el rincón de Violeta tenga 12 corazones alcanzables.

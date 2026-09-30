@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { MAPA_CASA } from "../mapa/mapas";
 import { Grilla } from "../sistemas/grilla";
-import { BLOQUES, mueblesLiving } from "./living";
+import { BLOQUES } from "./habitacion";
+import { mueblesLiving } from "./living";
 
 describe("Muebles del living", () => {
   it("cubren exactamente los muros interiores del mapa, sin tapar pasillos", () => {

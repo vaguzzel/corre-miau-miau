@@ -6,10 +6,36 @@
     "pepinoSeg": 8,
     "siesta": true,
     "siestaCadaSeg": [18, 28],
-    "siestaSeg": 1.5
+    "siestaSeg": 1.5,
+    "esquina": [1, 1],
+    "modos": [["cazar", -1]]
   },
-  "begona": { "velocidadGato": 0.95, "ia": "bfs", "pepinoSeg": 6 },
-  "eren": { "velocidadGato": 1.1, "ia": "astar", "adelanto": 4, "pepinoSeg": 4 },
+  "begona": {
+    "velocidadGato": 0.95,
+    "ia": "bfs",
+    "probPerseguir": 1,
+    "pepinoSeg": 6,
+    "siesta": false,
+    "siestaCadaSeg": [0, 0],
+    "siestaSeg": 0,
+    "esquina": [1, 17],
+    "modos": [["patrullar", 7], ["cazar", 20], ["patrullar", 7], ["cazar", 20], ["patrullar", 5], ["cazar", -1]]
+  },
+  "eren": {
+    "velocidadGato": 1.1,
+    "ia": "astar",
+    "probPerseguir": 1,
+    "adelanto": 4,
+    "pepinoSeg": 4,
+    "siesta": false,
+    "siestaCadaSeg": [0, 0],
+    "siestaSeg": 0,
+    "esquina": [25, 17],
+    "modos": [["patrullar", 5], ["cazar", 25], ["patrullar", 4], ["cazar", -1]]
+  },
+  "violeta": {
+    "corazones": 12
+  },
   "general": {
     "velocidadRaton": 5.0,
     "turbo": 1.3,
@@ -28,6 +54,6 @@
     "velocidadGateraGato": 0.6,
     "radioAtrapar": 0.6,
     "esperaInicioSeg": 1.5,
-    "puntos": { "queso": 10, "pepino": 50, "cafe": 100, "caja": 0 }
+    "puntos": { "queso": 10, "pepino": 50, "cafe": 100, "caja": 0, "corazon": 100 }
   }
 }

@@ -1,7 +1,11 @@
 // Exporta el pixel art a PNG para revisarlo fuera del juego: npm run arte
 import { mkdirSync } from "node:fs";
+import { COCINA } from "../src/arte/cocina";
+import { ALTO_PARED, T, type Habitacion } from "../src/arte/habitacion";
 import { Lienzo } from "../src/arte/Lienzo";
-import { ALTO_PARED, BLOQUES, muroInferior, mueblesLiving, pisoLiving, T } from "../src/arte/living";
+import { crearJardin } from "../src/arte/jardin";
+import { LIVING } from "../src/arte/living";
+import { dibujarCorazon, mapaVioleta, RINCON } from "../src/arte/rincon";
 import { dibujarCafe, dibujarCaja, dibujarPepino, dibujarQueso, dibujarQuesito } from "../src/arte/personajes";
 import { MAPA_CASA } from "../src/mapa/mapas";
 import { Grilla } from "../src/sistemas/grilla";
@@ -21,23 +25,39 @@ for (const p of piezas) {
 }
 guardarPNG(hoja, `${SALIDA}/personajes.png`, 6);
 
-// 2) El living completo, tal como se verá con "mapa completo".
-const g = new Grilla(MAPA_CASA);
-const living = pisoLiving(g.ancho, g.alto, g.gateras[0].y);
-const oy = ALTO_PARED;
-for (const o of g.objetos) {
-  const spr = o.tipo === "queso" ? dibujarQueso() : o.tipo === "pepino" ? dibujarPepino() : o.tipo === "cafe" ? dibujarCafe() : dibujarCaja();
-  living.pegar(spr, o.casilla.x * T + 12 - Math.floor(spr.ancho / 2), oy + o.casilla.y * T + 16 - spr.alto);
+/** Dibuja una habitación completa, tal como se ve con "mapa completo". */
+export function componer(h: Habitacion, conObjetos = true): Lienzo {
+  const g = new Grilla(MAPA_CASA);
+  const l = h.piso(g.ancho, g.alto, g.gateras[0].y);
+  const oy = ALTO_PARED;
+  if (conObjetos)
+    for (const o of g.objetos) {
+      const spr = o.tipo === "queso" ? dibujarQueso() : o.tipo === "pepino" ? dibujarPepino() : o.tipo === "cafe" ? dibujarCafe() : dibujarCaja();
+      l.pegar(spr, o.casilla.x * T + 12 - Math.floor(spr.ancho / 2), oy + o.casilla.y * T + 16 - spr.alto);
+    }
+  for (const m of h.muebles().sort((a, b) => a.profundidad - b.profundidad)) l.pegar(m.lienzo, m.x, m.y + oy);
+  l.pegar(dibujarQuesito("frente"), g.inicioRaton.x * T + 1, oy + g.inicioRaton.y * T - 4);
+  l.pegar(h.muroInferior(g.ancho), 0, oy + (g.alto - 1) * T);
+  return l;
 }
-const muebles = mueblesLiving().sort((a, b) => a.profundidad - b.profundidad);
-for (const m of muebles) living.pegar(m.lienzo, m.x, m.y + oy);
-living.pegar(dibujarQuesito("frente"), g.inicioRaton.x * T + 1, oy + g.inicioRaton.y * T - 4);
-living.pegar(muroInferior(g.ancho), 0, oy + (g.alto - 1) * T);
-guardarPNG(living, `${SALIDA}/living.png`, 2);
 
-// 3) Un recorte ampliado, como se ve con la cámara del juego (zoom x3).
-const recorte = new Lienzo(16 * T, 9 * T);
-recorte.pegar(living, -1 * T, -(oy + 0));
-guardarPNG(recorte, `${SALIDA}/living-camara.png`, 3);
+const grilla = new Grilla(MAPA_CASA);
+for (const [nombre, h] of [["living", LIVING], ["cocina", COCINA], ["jardin", crearJardin((x, y) => grilla.esMuro(x, y))]] as [string, Habitacion][]) {
+  const l = componer(h);
+  guardarPNG(l, `${SALIDA}/${nombre}.png`, 2);
+  const recorte = new Lienzo(16 * T, 9 * T);
+  recorte.pegar(l, -1 * T, -ALTO_PARED);
+  guardarPNG(recorte, `${SALIDA}/${nombre}-camara.png`, 3);
+}
+// El rincón de Violeta tiene su propio mapa
+{
+  const gv = new Grilla(mapaVioleta());
+  const l = RINCON.piso(gv.ancho, gv.alto, 0);
+  for (const o of gv.objetos) if (o.tipo === "corazon") l.pegar(dibujarCorazon(), o.casilla.x * T + 7, ALTO_PARED + o.casilla.y * T + 6);
+  for (const m of RINCON.muebles().sort((a, b) => a.profundidad - b.profundidad)) l.pegar(m.lienzo, m.x, m.y + ALTO_PARED);
+  l.pegar(dibujarQuesito("espalda"), gv.inicioRaton.x * T + 1, ALTO_PARED + gv.inicioRaton.y * T - 4);
+  l.pegar(RINCON.muroInferior(gv.ancho), 0, ALTO_PARED + (gv.alto - 1) * T);
+  guardarPNG(l, `${SALIDA}/rincon.png`, 2);
+}
 
-console.log(`Listo: ${BLOQUES.length} muebles exportados en ${SALIDA}/`);
+console.log(`Listo: arte exportado en ${SALIDA}/`);

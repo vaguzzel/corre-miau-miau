@@ -21,13 +21,15 @@ export interface Casilla {
   y: number;
 }
 
-export type TipoObjeto = "queso" | "pepino" | "cafe" | "caja";
+export type TipoObjeto = "queso" | "pepino" | "cafe" | "caja" | "corazon";
 
 export class Grilla {
   readonly ancho: number;
   readonly alto: number;
   readonly inicioRaton: Casilla;
   readonly inicioGato: Casilla;
+  /** Dónde espera Violeta en el nivel final (si el mapa tiene una V). */
+  readonly violeta: Casilla | null = null;
   readonly objetos: { casilla: Casilla; tipo: TipoObjeto }[] = [];
   readonly gateras: Casilla[] = [];
   private readonly muros: boolean[][];
@@ -40,6 +42,7 @@ export class Grilla {
 
     let raton: Casilla | null = null;
     let gato: Casilla | null = null;
+    let violeta: Casilla | null = null;
     this.muros = filas.map((fila, y) =>
       [...fila].map((c, x) => {
         switch (c) {
@@ -68,14 +71,24 @@ export class Grilla {
           case "b":
             this.objetos.push({ casilla: { x, y }, tipo: "caja" });
             return false;
+          case "h":
+            this.objetos.push({ casilla: { x, y }, tipo: "corazon" });
+            return false;
+          case "V":
+            violeta = { x, y };
+            return false;
+          case " ":
+            return false;
           default:
             throw new Error(`Carácter desconocido en el mapa: "${c}" (${x}, ${y})`);
         }
       }),
     );
-    if (!raton || !gato) throw new Error("El mapa necesita una Q (Quesito) y una G (gato)");
+    if (!raton) throw new Error("El mapa necesita una Q (Quesito)");
+    if (!gato && !violeta) throw new Error("El mapa necesita una G (gato) o una V (Violeta)");
     this.inicioRaton = raton;
-    this.inicioGato = gato;
+    this.inicioGato = gato ?? raton;
+    this.violeta = violeta;
   }
 
   /** Casilla vecina en una dirección. Por las gateras, salir por un borde te deja en el otro. */

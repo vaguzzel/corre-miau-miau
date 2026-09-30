@@ -1,3 +1,4 @@
+import { ALTO_PARED, construirMuebles, T, type Dibujo, type Habitacion, type Retrato } from "./habitacion";
 import { escribir } from "./letras";
 import { Lienzo } from "./Lienzo";
 import { P, type Color } from "./paleta";
@@ -21,38 +22,9 @@ import {
   type TipoPlanta,
 } from "./primitivas";
 
-/** Tamaño de una casilla en píxeles de arte. */
-export const T = 24;
-/** Alto extra de la pared del fondo, por encima de la fila 0 (vista 3/4). */
-export const ALTO_PARED = 40;
+// ---------- piezas reutilizables (también las usan otras habitaciones) ----------
 
-/** Muebles del living: [columna, fila, ancho, alto] en casillas. Coinciden con los muros del mapa. */
-export const BLOQUES: [number, number, number, number][] = [
-  [2, 2, 2, 2], [5, 2, 3, 2], [9, 1, 1, 3], [11, 2, 5, 2], [17, 1, 1, 3], [19, 2, 3, 2], [23, 2, 2, 2],
-  [2, 5, 2, 2], [2, 8, 2, 1], [5, 5, 1, 4], [7, 5, 3, 1], [7, 7, 1, 2], [10, 6, 7, 3], [17, 5, 3, 1], [19, 7, 1, 2], [21, 5, 1, 4], [23, 5, 2, 2], [23, 8, 2, 1],
-  [2, 10, 2, 1], [2, 12, 2, 2], [5, 10, 1, 4], [7, 10, 1, 2], [7, 13, 3, 1], [10, 10, 7, 3], [17, 13, 3, 1], [19, 10, 1, 2], [21, 10, 1, 4], [23, 10, 2, 1], [23, 12, 2, 2],
-  [2, 15, 2, 2], [5, 15, 3, 2], [9, 15, 1, 3], [11, 15, 5, 2], [17, 15, 1, 3], [19, 15, 3, 2], [23, 15, 2, 2],
-];
-
-/** Margen del lienzo de cada mueble: a los lados, hacia arriba (para lo alto) y hacia abajo. */
-const MARGEN = 6;
-const ARRIBA = 52;
-const ABAJO = 4;
-
-export interface SpriteMueble {
-  lienzo: Lienzo;
-  /** Esquina superior izquierda en el mundo (píxeles). */
-  x: number;
-  y: number;
-  /** Profundidad: la base del mueble. Lo que esté más abajo en pantalla se dibuja delante. */
-  profundidad: number;
-}
-
-type Dibujo = (l: Lienzo, x: number, y: number, w: number, h: number) => void;
-
-// ---------- piezas reutilizables ----------
-
-function sofa(tela: Color, telaOsc: Color, cojines: [Color, Color], rasguños: boolean): Dibujo {
+export function sofa(tela: Color, telaOsc: Color, cojines: [Color, Color], rasguños: boolean): Dibujo {
   return (l, x, y, w, h) => {
     caja(l, x, y, w, 10, 16, telaOsc, osc(telaOsc));
     const n = Math.max(2, Math.round((w - 16) / 22));
@@ -93,7 +65,7 @@ function sofa(tela: Color, telaOsc: Color, cojines: [Color, Color], rasguños: b
   };
 }
 
-function estanteAlto(items: ((l: Lienzo, cx: number, base: number) => void)[], sem: number): Dibujo {
+export function estanteAlto(items: ((l: Lienzo, cx: number, base: number) => void)[], sem: number): Dibujo {
   return (l, x, y, w, h) =>
     caja(l, x + 1, y, w - 2, h, 16, P.maderaMed, P.madera, {
       frente: (l2, fx, fy, fw, fh) => {
@@ -104,7 +76,7 @@ function estanteAlto(items: ((l: Lienzo, cx: number, base: number) => void)[], s
     });
 }
 
-function jardinera(tipos: TipoPlanta[], vertical: boolean): Dibujo {
+export function jardinera(tipos: TipoPlanta[], vertical: boolean): Dibujo {
   return (l, x, y, w, h) =>
     caja(l, x + 1, y + 2, w - 2, h - 2, 8, P.maderaOsc, P.madera, {
       frente: (l2, fx, fy, fw, fh) => {
@@ -121,14 +93,14 @@ function jardinera(tipos: TipoPlanta[], vertical: boolean): Dibujo {
     });
 }
 
-function plantasRincon(grande: TipoPlanta, chica: TipoPlanta): Dibujo {
+export function plantasRincon(grande: TipoPlanta, chica: TipoPlanta): Dibujo {
   return (l, x, y, w, h) => {
     planta(l, x + w - 12, y + 18, chica, 11, P.crema);
     planta(l, x + w / 2 - 2, y + h - 4, grande, 19, grande === "ficus" ? P.cremaClara : P.maderaClara);
   };
 }
 
-function mesita(cosas: (l: Lienzo, cx: number, base: number) => void): Dibujo {
+export function mesita(cosas: (l: Lienzo, cx: number, base: number) => void): Dibujo {
   return (l, x, y, w, h) => {
     const cx = x + w / 2;
     const base = y + h - 6;
@@ -137,7 +109,7 @@ function mesita(cosas: (l: Lienzo, cx: number, base: number) => void): Dibujo {
   };
 }
 
-function pufs(a: Color, b: Color): Dibujo {
+export function pufs(a: Color, b: Color): Dibujo {
   return (l, x, y, w, h) => {
     const cx = x + w / 2;
     for (const [base, c] of [[y + h * 0.45, a], [y + h - 4, b]] as [number, Color][]) {
@@ -148,7 +120,7 @@ function pufs(a: Color, b: Color): Dibujo {
   };
 }
 
-function banca(cojines: Color[]): Dibujo {
+export function banca(cojines: Color[]): Dibujo {
   return (l, x, y, w, h) =>
     caja(l, x + 1, y + 4, w - 2, h - 6, 8, P.maderaMed, P.madera, {
       patas: true,
@@ -163,7 +135,7 @@ function banca(cojines: Color[]): Dibujo {
     });
 }
 
-function estanteBajo(items: ((l: Lienzo, cx: number, base: number) => void)[], sem: number): Dibujo {
+export function estanteBajo(items: ((l: Lienzo, cx: number, base: number) => void)[], sem: number): Dibujo {
   return (l, x, y, w, h) =>
     caja(l, x + 1, y + 2, w - 2, h - 2, 12, P.maderaMed, P.madera, {
       frente: (l2, fx, fy, fw, fh) => {
@@ -566,42 +538,10 @@ const L_INDIVIDUAL: Dibujo[] = [
   plantasRincon("monstera", "helecho"),
 ];
 
-/**
- * Tarima baja que ocupa exactamente la huella de cada mueble. Es la señal visual de "aquí no se pasa":
- * aunque un mueble no llene todo su espacio (un piano, unas plantas), su tarima marca el borde del muro.
- */
-function tarima(l: Lienzo, x: number, y: number, w: number, h: number): void {
-  caja(l, x, y, w, h, 4, 0x9c6a42, P.maderaOsc, {
-    tapa: (l2, tx, ty, tw, th) => {
-      for (let j = 3; j < th - 1; j += 4) l2.hline(tx + 1, ty + j, tw - 2, 0x8e5f3a);
-      l2.marco(tx, ty, tw, th, P.maderaMed);
-    },
-  });
-}
-
-/** Dibuja cada mueble del living en su propio lienzo, listo para ordenarse por profundidad. */
-export function mueblesLiving(): SpriteMueble[] {
-  return BLOQUES.map(([bx, by, bw, bh], i) => {
-    const w = bw * T;
-    const h = bh * T;
-    const l = new Lienzo(w + MARGEN * 2, h + ARRIBA + ABAJO);
-    tarima(l, MARGEN, ARRIBA, w, h);
-    L_INDIVIDUAL[i](l, MARGEN, ARRIBA, w, h);
-    l.contorno(P.tinta);
-    return { lienzo: l, x: bx * T - MARGEN, y: by * T - ARRIBA, profundidad: (by + bh) * T };
-  });
-}
+/** Muebles del living, listos para ordenarse por profundidad. */
+export const mueblesLiving = () => construirMuebles(L_INDIVIDUAL);
 
 // ---------- piso y paredes ----------
-
-export interface Retrato {
-  clave: string;
-  /** Rectángulo interior del marco, en coordenadas del mundo. */
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-}
 
 /** Retratos de la familia colgados en la pared (las fotos HD se ponen encima en el juego). */
 export const RETRATOS: Retrato[] = [
@@ -782,3 +722,12 @@ export function muroInferior(ancho: number): Lienzo {
   for (let x = 4; x < W; x += 30) l.marco(x, 9, 24, 11, P.maderaOsc);
   return l;
 }
+
+/** El living de Tomasito (nivel 1). */
+export const LIVING: Habitacion = {
+  piso: pisoLiving,
+  muebles: mueblesLiving,
+  muroInferior,
+  fotos: RETRATOS,
+  mini: { piso: 0xe3c49a, muro: 0xa87447 },
+};
