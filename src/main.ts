@@ -1,5 +1,7 @@
 import * as Phaser from "phaser";
+import { Ayuda } from "./escenas/Ayuda";
 import { Inicio } from "./escenas/Inicio";
+import { Juego } from "./escenas/Juego";
 
 new Phaser.Game({
   type: Phaser.AUTO,
@@ -12,5 +14,5 @@ new Phaser.Game({
     width: 1280,
     height: 720,
   },
-  scene: [Inicio],
+  scene: [Inicio, Juego, Ayuda],
 });

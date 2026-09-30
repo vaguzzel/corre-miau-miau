@@ -1,0 +1,15 @@
+{
+  "tomasito": { "velocidadGato": 0.75, "ia": "azar", "pepinoSeg": 8, "siesta": true },
+  "begona": { "velocidadGato": 0.95, "ia": "bfs", "pepinoSeg": 6 },
+  "eren": { "velocidadGato": 1.1, "ia": "astar", "adelanto": 4, "pepinoSeg": 4 },
+  "general": {
+    "velocidadRaton": 5.0,
+    "turbo": 1.3,
+    "turboSeg": 5,
+    "cajaSeg": 4,
+    "vidas": 3,
+    "vidaExtraCada": 10000,
+    "tamCasilla": 24,
+    "zoomCamara": 3
+  }
+}

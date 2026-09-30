@@ -49,12 +49,17 @@ export class Inicio extends Phaser.Scene {
         .setOrigin(0.5);
     });
 
-    this.add
-      .text(width / 2, height * 0.9, `Fase 0 lista · Phaser ${Phaser.VERSION}`, {
+    const jugar = this.add
+      .text(width / 2, height * 0.9, "Presiona ESPACIO o haz clic para jugar", {
         fontFamily: "Trebuchet MS, sans-serif",
-        fontSize: "18px",
-        color: "#b5a594",
+        fontSize: "22px",
+        color: "#fbefd9",
       })
       .setOrigin(0.5);
+    this.tweens.add({ targets: jugar, alpha: 0.4, duration: 800, yoyo: true, repeat: -1 });
+
+    const empezar = () => this.scene.start("Juego");
+    this.input.keyboard!.once("keydown-SPACE", empezar);
+    this.input.once("pointerdown", empezar);
   }
 }
