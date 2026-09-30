@@ -1,0 +1,18 @@
+[package]
+name = "corre-miau-miau"
+version = "1.0.0"
+description = "Corre Miau Miau: versión de escritorio"
+authors = ["Valentina"]
+license = "MIT"
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+
+[profile.release]
+strip = true
+lto = true
+opt-level = "s"

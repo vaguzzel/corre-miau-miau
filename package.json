@@ -1,7 +1,7 @@
 {
   "name": "corre-miau-miau",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Juego tipo Pac-Man en pixel art: Quesito recorre la casa mientras los gatos lo persiguen.",
   "type": "module",
   "scripts": {
@@ -10,13 +10,15 @@
     "preview": "vite preview",
     "test": "vitest run",
     "arte": "tsx tools/exportar-arte.ts",
-    "iconos": "tsx tools/exportar-iconos.ts"
+    "iconos": "tsx tools/exportar-iconos.ts",
+    "tauri": "tauri"
   },
   "license": "MIT",
   "dependencies": {
     "phaser": "4.2.1"
   },
   "devDependencies": {
+    "@tauri-apps/cli": "^2.12.0",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vite": "^8.3.1",

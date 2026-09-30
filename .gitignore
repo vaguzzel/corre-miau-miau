@@ -3,3 +3,6 @@ dist/
 .DS_Store
 *.log
 tools/salida/
+src-tauri/target/
+src-tauri/gen/
+src-tauri/icons/
