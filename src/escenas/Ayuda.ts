@@ -7,12 +7,16 @@ export class Ayuda extends Phaser.Scene {
   }
 
   create(): void {
+    const { width, height } = this.scale;
     const estilo = { fontFamily: "Trebuchet MS, sans-serif", fontSize: "18px", color: "#fbefd9", backgroundColor: "#3a271bcc", padding: { x: 10, y: 6 } };
-    this.add.text(12, 12, "Flechas o WASD: mover   ·   M: mapa completo", estilo);
-    const aviso = this.add
-      .text(this.scale.width / 2, this.scale.height - 30, "Mapa completo · el juego está en pausa · M para volver", estilo)
+    this.add.text(12, 12, "Flechas o WASD: mover   ·   M: mapa completo   ·   ESPACIO: pausa", estilo);
+
+    const pausa = this.add
+      .text(width / 2, height / 2, "PAUSA\nESPACIO para seguir", { ...estilo, fontSize: "36px", align: "center", padding: { x: 28, y: 18 } })
       .setOrigin(0.5)
       .setVisible(false);
-    this.scene.get("Juego").events.on("mapa-completo", (activo: boolean) => aviso.setVisible(activo));
+
+    const juego = this.scene.get("Juego");
+    juego.events.on("pausa", (activa: boolean) => pausa.setVisible(activa));
   }
 }

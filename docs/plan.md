@@ -21,7 +21,7 @@ Muestra interactiva de referencia (estilo, cámara, reglas): https://claude.ai/a
 | Tamaño del mapa | **27×19 casillas**, más grande que la pantalla |
 | Cámara | Sigue a Quesito con suavidad; se ven unas 16×9 casillas en computador y unas 10 de ancho en celular |
 | Mini-mapa | En la esquina: muestra a Quesito, al gato y el área visible |
-| Vista "Mapa completo" | Botón o tecla (M) que aleja la cámara para ver la habitación entera y pausa el juego mientras miras |
+| Vista "Mapa completo" | Tecla M: aleja la cámara para ver la habitación entera; el juego sigue corriendo (se puede jugar así). La pausa es aparte, con ESPACIO |
 | Idiomas | Español e inglés |
 | Arte | Lo hace Claude: sprites dibujados como mapas de píxeles en código y convertidos a PNG con un script. Packs CC0 solo como respaldo |
 | Presupuesto | $0: todo con herramientas y recursos gratis |
@@ -52,7 +52,7 @@ Estados del gato (máquina de estados): **Patrullar → Cazar** (alternan por ti
 
 - **Vidas:** 3. Una vida extra cada 10.000 puntos.
 - **Gateras:** túneles en los muros laterales, en la fila central. El gato va al 60% de su velocidad dentro.
-- **Controles:** flechas o WASD. La próxima dirección queda guardada y Quesito gira apenas puede. En celular, deslizar el dedo (swipe). P = pausa, M = mapa completo.
+- **Controles:** flechas o WASD. La próxima dirección queda guardada y Quesito gira apenas puede. En celular, deslizar el dedo (swipe). ESPACIO = pausa, M = mapa completo.
 - **Movimiento:** casilla por casilla con desplazamiento suave; las decisiones se toman al llegar al centro de cada casilla.
 - **Mejor puntaje:** guardado en el navegador.
 

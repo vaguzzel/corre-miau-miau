@@ -33,6 +33,7 @@ export class Juego extends Phaser.Scene {
   private sprite!: Phaser.GameObjects.Container;
   private mini!: Phaser.Cameras.Scene2D.Camera;
   private mapaCompleto = false;
+  private pausado = false;
 
   constructor() {
     super("Juego");
@@ -71,15 +72,16 @@ export class Juego extends Phaser.Scene {
 
     this.input.keyboard!.on("keydown", (e: KeyboardEvent) => {
       const dir = TECLAS[e.code];
-      if (dir && !this.mapaCompleto) this.quesito.pedir(dir);
+      if (dir && !this.pausado) this.quesito.pedir(dir);
       if (e.code === "KeyM") this.alternarMapa();
+      if (e.code === "Space") this.alternarPausa();
     });
 
     this.scene.launch("Ayuda");
   }
 
   update(_t: number, dtMs: number): void {
-    if (this.mapaCompleto) return;
+    if (this.pausado) return;
     this.quesito.actualizar(dtMs / 1000, niveles.general.velocidadRaton);
     this.actualizarSprite();
   }
@@ -128,5 +130,10 @@ export class Juego extends Phaser.Scene {
       this.mini.setVisible(true);
     }
     this.events.emit("mapa-completo", this.mapaCompleto);
+  }
+
+  private alternarPausa(): void {
+    this.pausado = !this.pausado;
+    this.events.emit("pausa", this.pausado);
   }
 }
