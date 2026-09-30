@@ -1,4 +1,4 @@
-# Quesito y los gatos de la casa
+# Corre Miau Miau
 
 Juego tipo Pac-Man en pixel art: controlas a **Quesito**, un ratón que recorre la casa comiendo queso mientras Tomasito, Begoña y Eren lo persiguen. Al final, un nivel tranquilo con Violeta.
 

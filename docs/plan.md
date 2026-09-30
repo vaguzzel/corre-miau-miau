@@ -1,4 +1,4 @@
-# Plan final: Quesito y los gatos de la casa
+# Plan final: Corre Miau Miau
 
 Juego tipo Pac-Man en pixel art, en vista 3/4. Controlas a **Quesito**, un ratón que recorre cada habitación de la casa comiendo queso mientras uno de tus gatos lo persigue. Al final, un nivel tranquilo con **Violeta**.
 

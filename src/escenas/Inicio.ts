@@ -18,7 +18,7 @@ export class Inicio extends Phaser.Scene {
     for (const m of MASCOTAS) this.textures.get(m.clave).setFilter(Phaser.Textures.FilterMode.LINEAR);
 
     this.add
-      .text(width / 2, height * 0.2, "Quesito y los gatos de la casa", {
+      .text(width / 2, height * 0.2, "Corre Miau Miau", {
         fontFamily: "Trebuchet MS, sans-serif",
         fontSize: "48px",
         color: "#fbefd9",
