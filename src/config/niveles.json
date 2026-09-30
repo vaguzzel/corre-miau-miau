@@ -10,6 +10,7 @@
     "vidas": 3,
     "vidaExtraCada": 10000,
     "tamCasilla": 24,
-    "zoomCamara": 3
+    "zoomCamara": 3,
+    "puntos": { "queso": 10, "pepino": 50, "cafe": 100, "caja": 0 }
   }
 }
