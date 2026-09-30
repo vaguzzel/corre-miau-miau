@@ -329,6 +329,7 @@ Todos los sonidos se **generan con la Web Audio API**: cada efecto es una secuen
 ## 18. Publicación: web, app instalable y escritorio
 
 - **GitHub Pages** ([`.github/workflows/pages.yml`](../.github/workflows/pages.yml)): cada vez que se sube código a `main`, GitHub Actions instala las dependencias, **corre las pruebas** y, solo si pasan, construye el juego y lo publica en https://vaguzzel.github.io/corre-miau-miau/.
+- **Vercel** ([`vercel.json`](../vercel.json)): el repositorio también está conectado a Vercel, que publica cada cambio de `main` y crea una versión de prueba para cada rama. La configuración corre las pruebas antes de construir, y hace que el *service worker* (`sw.js`) nunca quede guardado en caché (así la app instalable siempre recibe la última versión), mientras que los archivos de `assets/` se guardan en caché por un año porque su nombre cambia con cada versión.
 - **App instalable (PWA)**: `vite-plugin-pwa` genera un *manifest* (nombre, íconos, colores, pantalla completa horizontal) y un *service worker* que guarda el juego en caché. Así el navegador ofrece "Instalar" y el juego funciona sin internet.
 - **Íconos en pixel art**: `npm run iconos` dibuja a Quesito con un trocito de queso y lo exporta en todos los tamaños (favicon, 192, 512 y una versión *maskable* con margen para que Android la recorte en círculo).
 - **Probar un nivel directo**: agregando `?nivel=begona` (o `tomasito`, `eren`, `violeta`, `final`) a la dirección se salta el menú. La escena `Carga` lee ese parámetro.
