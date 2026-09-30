@@ -2,7 +2,7 @@
   "tomasito": {
     "velocidadGato": 0.75,
     "ia": "azar",
-    "probPerseguir": 0.35,
+    "probPerseguir": 0.7,
     "pepinoSeg": 8,
     "siesta": true,
     "siestaCadaSeg": [8, 14],
