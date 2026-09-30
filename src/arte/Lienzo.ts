@@ -31,6 +31,17 @@ export class Lienzo {
     return this.datos[(y * this.ancho + x) * 4 + 3] > 0;
   }
 
+  /** Aclara (f > 0) u oscurece (f < 0) un píxel ya pintado, mezclándolo con luz cálida o sombra. */
+  tono(x: number, y: number, f: number): void {
+    x = Math.round(x);
+    y = Math.round(y);
+    if (!this.opaco(x, y)) return;
+    const i = (y * this.ancho + x) * 4;
+    const obj = f > 0 ? [255, 236, 190] : [40, 20, 10];
+    const k = Math.abs(f);
+    for (let c = 0; c < 3; c++) this.datos[i + c] = Math.round(this.datos[i + c] + (obj[c] - this.datos[i + c]) * k);
+  }
+
   borrar(x: number, y: number): void {
     if (x < 0 || y < 0 || x >= this.ancho || y >= this.alto) return;
     this.datos[(y * this.ancho + x) * 4 + 3] = 0;

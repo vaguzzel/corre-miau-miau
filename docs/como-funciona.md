@@ -146,7 +146,9 @@ La pausa (ESPACIO) es aparte: congela cualquier fase.
 ## 7. Cámara, mini-mapa y mapa completo
 
 - **Cámara:** sigue a Quesito con suavizado (`startFollow` con factor 0,12) y no sale de los bordes del mapa. El zoom es ×3, un número entero, para que los píxeles queden cuadrados.
-- **Mini-mapa:** es una **segunda cámara** de Phaser con zoom chico que mira todo el mapa.
+- **Mini-mapa:** es una **segunda cámara** de Phaser con zoom chico. Para que no muestre el pixel art achicado (se vería como ruido), cada cámara ignora cosas distintas:
+  - la cámara principal ignora un dibujo simplificado del laberinto (cuadros de color) y dos puntos (Quesito en amarillo, el gato en su color);
+  - la cámara del mini-mapa ignora la capa del mundo y solo ve ese dibujo simplificado.
 - **Mapa completo (M):** la cámara deja de seguir a Quesito y hace zoom para mostrar la habitación entera. El juego sigue corriendo.
 
 ---
@@ -179,9 +181,53 @@ El arte no está dibujado en un programa: está **escrito en código**, píxel a
 
 El mismo código dibuja en el juego y en Node: `npm run arte` exporta los dibujos a `tools/salida/` para revisarlos como imagen.
 
+### El living
+
+**Archivo:** [`src/arte/living.ts`](../src/arte/living.ts)
+
+- `BLOQUES` lista los 36 muebles como rectángulos `[columna, fila, ancho, alto]`. Una prueba automática confirma que calzan **exactamente** con los muros del mapa: ningún mueble tapa un pasillo y ningún muro queda sin mueble.
+- Cada mueble se dibuja en su propio lienzo, con margen hacia arriba para lo alto (lámparas, plantas, el castillo de Tomasito).
+- `pisoLiving` dibuja en un solo lienzo el piso de tablas, la pared del fondo (papel mural, zócalo, ventanas, guirnalda), los muros laterales vistos desde arriba, las alfombras, el felpudo y la luz de la estufa y las lámparas.
+- **La luz es un tramado:** en vez de un degradado suave (que no es pixel art), se aclaran píxeles sueltos. Mientras más cerca de la fuente, más píxeles se aclaran.
+- La pared del fondo mide 40 píxeles más que la fila 0 (`ALTO_PARED`): en la vista 3/4 se ve de frente, así que necesita altura.
+
+## 10. Vista 3/4 y orden de profundidad (y-sort)
+
+**Archivo:** [`src/escenas/Juego.ts`](../src/escenas/Juego.ts), métodos `dibujarHabitacion` y `actualizarSprites`
+
+En la vista 3/4, un mueble tapa lo que está **detrás** (más arriba en pantalla), y lo que está **delante** (más abajo) lo tapa a él. La regla es simple: **se dibuja primero lo que tiene la base más arriba**.
+
+- Cada mueble tiene como profundidad la `y` de su base (el borde de abajo de su huella).
+- Cada personaje tiene como profundidad la `y` de sus pies, que se actualiza en cada fotograma.
+- Todos van en una misma **capa** (`Layer`) de Phaser, que los ordena por profundidad automáticamente.
+
+Resultado: si Quesito camina por el pasillo de arriba de un sofá, el respaldo le tapa los pies; si camina por el de abajo, él tapa el sofá.
+
+Casos especiales:
+
+| Qué | Profundidad | Por qué |
+|---|---|---|
+| Piso y paredes | −10000 | Siempre al fondo |
+| Queso, pepino, cafecito | −5000 | Están pegados al piso |
+| Caja de cartón | su base | Tiene altura, como un mueble |
+| Muro de abajo | 100000 | Es lo más cercano a la cámara |
+
+## 11. Las fotos como stickers
+
+**Archivo:** [`src/arte/texturas.ts`](../src/arte/texturas.ts), función `crearSticker`
+
+El borde blanco y el borde de color alrededor de cada foto se generan en el juego, a partir del PNG recortado, con una **transformada de distancia**:
+
+1. Se marca con distancia 0 cada píxel donde la foto es opaca.
+2. Se recorre la imagen dos veces (de arriba a la izquierda y de abajo a la derecha) calculando, para cada píxel vacío, la distancia a la foto más cercana. Los pasos rectos cuentan 1 y los diagonales √2 (método de "chaflán").
+3. Los píxeles a 7 o menos de distancia se pintan blancos; los de 7 a 12, del color de la mascota. El último píxel se suaviza para que el borde no quede serrucho.
+4. Encima se dibuja la foto.
+
+Así cualquier foto nueva recibe su borde automáticamente, sin editarla a mano. Las fotos usan filtro suave (LINEAR) para verse nítidas, mientras el pixel art usa filtro de píxel (NEAREST).
+
 ---
 
-## 10. Pruebas automáticas
+## 12. Pruebas automáticas
 
 `npm test` corre las pruebas con Vitest. Revisan, entre otras cosas:
 
@@ -189,4 +235,5 @@ El mismo código dibuja en el juego y en Node: `npm run arte` exporta los dibujo
 - el movimiento suave, el giro guardado, la vuelta inmediata y las gateras;
 - que BFS rodee muros, use gateras y siempre llegue a Quesito;
 - que la IA de Tomasito no se dé vuelta y use todos los caminos cuando se distrae;
-- el puntaje y la condición de victoria.
+- el puntaje y la condición de victoria;
+- que los 36 muebles del living calcen exactamente con los muros del mapa.
