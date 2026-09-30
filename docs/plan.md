@@ -32,7 +32,7 @@ Muestra interactiva de referencia (estilo, cámara, reglas): https://claude.ai/a
 
 | Orden | Nivel | Gato | Borde | Velocidad vs. Quesito | Cómo persigue | Pepino dura |
 |---|---|---|---|---|---|---|
-| 1 | El living | Tomasito | celeste `#5FB0E6` | 75% | Camino más corto (BFS) el 70% de las veces; si no, se distrae y va al azar. Nunca se da vuelta. Cada tanto se duerme 2 s | 8 s |
+| 1 | El living | Tomasito | celeste `#5FB0E6` | 75% | Camino más corto (BFS) el 85% de las veces; si no, se distrae y va al azar. Nunca se da vuelta. Cada 18 a 28 s se duerme 1,5 s | 8 s |
 | 2 | La cocina | Begoña | miel `#E8A53A` | 95% | Camino más corto (BFS). Alterna entre cazar y patrullar su esquina | 6 s |
 | 3 | El jardín | Eren | coral `#EE6A55` | 110% | A* apuntando 4 casillas delante de Quesito: te corta el paso | 4 s |
 | Final | El rincón de Violeta | Violeta | lila `#B48CE0` | no persigue | Quesito junta 12 corazones y se los lleva; escena de ladrido, duda y abrazo | — |

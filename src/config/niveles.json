@@ -2,11 +2,11 @@
   "tomasito": {
     "velocidadGato": 0.75,
     "ia": "azar",
-    "probPerseguir": 0.7,
+    "probPerseguir": 0.85,
     "pepinoSeg": 8,
     "siesta": true,
-    "siestaCadaSeg": [8, 14],
-    "siestaSeg": 2
+    "siestaCadaSeg": [18, 28],
+    "siestaSeg": 1.5
   },
   "begona": { "velocidadGato": 0.95, "ia": "bfs", "pepinoSeg": 6 },
   "eren": { "velocidadGato": 1.1, "ia": "astar", "adelanto": 4, "pepinoSeg": 4 },
